@@ -27,15 +27,8 @@ public class NetworkTelemetryApp {
         Set<Edge> state = new HashSet<>();
         for (Map.Entry<Integer,Cluster> entry: clusterMap.entrySet()) {
             Cluster cluster = entry.getValue();
-//            System.out.println(cluster.getAllDeviceList());
-            // 获取簇内路径
-            List<List<Integer>> interClusterPath = PathGenerator.generatePath(cluster.getHead());
-            System.out.println("cluster " + cluster.getId() + " 的簇内路径为: " + interClusterPath);
-            cluster.setInterClusterPath(interClusterPath);
 
-            // 为了好复制
-            path.addAll(interClusterPath);
-
+            // 必须先看簇间，有优化。
             // 获取簇间路径
             List<List<Integer>> intraClusterPath = PathGenerator.generateClusterPath(cluster,state);
             System.out.println("cluster " + cluster.getId() + " 的簇间路径为: " + intraClusterPath);
@@ -43,6 +36,14 @@ public class NetworkTelemetryApp {
 
             // 为了好复制
             path.addAll(intraClusterPath);
+
+            // 获取簇内路径
+            List<List<Integer>> interClusterPath = PathGenerator.generatePath(cluster.getHead(),state);
+            System.out.println("cluster " + cluster.getId() + " 的簇内路径为: " + interClusterPath);
+            cluster.setInterClusterPath(interClusterPath);
+
+            // 为了好复制
+            path.addAll(interClusterPath);
 
 
             int interClusterPathNum = interClusterPath.size();
@@ -60,5 +61,20 @@ public class NetworkTelemetryApp {
         System.out.println("网络总路径数为: " + count);
         System.out.println("程序运行时间: " + span + " 毫秒");
         System.out.println("所有的路径: " + path);
+
+        System.out.println(state.size());
+
+//        List<Device> devices = graph.getDevices();
+//        for (int i = 0; i < devices.size(); i++) {
+//            if (devices.get(i).getId() == 33){
+//                System.out.println(devices.get(i).getBelongingCluster().getHead().getId());
+//                List<Device> adjDevice = devices.get(i).getAdjDevice();
+//                for (int j = 0; j < adjDevice.size(); j++) {
+//                    System.out.print(adjDevice.get(i).getId() + " ");
+//                }
+//            }
+//        }
+
+
     }
 }

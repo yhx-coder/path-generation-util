@@ -18,9 +18,9 @@ public class PathGenerator {
      * @param head 簇头节点
      * @return 簇内路径集合
      */
-    public static List<List<Integer>> generatePath(Device head) {
+    public static List<List<Integer>> generatePath(Device head,Set<Edge> state) {
         List<List<Integer>> path = new ArrayList<>();
-        HashSet<Edge> state = new HashSet<>();
+//        HashSet<Edge> state = new HashSet<>();
 
         int clusterId = head.getBelongingCluster().getId();
 
@@ -57,7 +57,7 @@ public class PathGenerator {
                                 Edge test1 = new Edge(head, d2);
                                 Edge test2 = new Edge(d2, d3);
                                 Edge test3 = new Edge(d3, head);
-                                if (!state.contains(test1) && !state.contains(test2) && !state.contains(test3)) {
+                                if (!state.contains(test2)) {
                                     temp.add(d3.getId());
                                     temp.add(head.getId());
                                     // 权宜之计，起点和终点相同时仿真收不到包。正常应该用上面的。可没找到仿真哪里有问题。簇间也是这样处理。
@@ -158,6 +158,10 @@ public class PathGenerator {
                                     ));
                                     state.add(edge);
                                     state.add(secondEdge);
+
+                                    Edge e = new Edge(secondMember,cluster.getHead());
+                                    state.add(e);
+
                                 }
                                 if (!state.contains(edge)) {
                                     clusterPath.add(List.of(cluster.getHead().getId(), boundaryAdjDevice.getId()));
@@ -180,6 +184,10 @@ public class PathGenerator {
                             if (!state.contains(edge)) {
                                 clusterPath.add(List.of(cluster.getHead().getId(), boundaryDevice.getId(), boundaryAdjDevice.getId()));
                                 state.add(edge);
+
+                                // 减少簇内发包
+                                Edge withinCluster = new Edge(cluster.getHead(),boundaryDevice);
+                                state.add(withinCluster);
                             }
                         }
                         // 规模相等时, Id 大的发包
@@ -188,6 +196,10 @@ public class PathGenerator {
                                 if (!state.contains(edge)) {
                                     clusterPath.add(List.of(cluster.getHead().getId(), boundaryDevice.getId(), boundaryAdjDevice.getId()));
                                     state.add(edge);
+
+                                    // 减少簇内发包
+                                    Edge withinCluster = new Edge(cluster.getHead(),boundaryDevice);
+                                    state.add(withinCluster);
                                 }
                             }
                         }

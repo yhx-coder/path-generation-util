@@ -18,7 +18,7 @@ public class PathGenerator {
      * @param head 簇头节点
      * @return 簇内路径集合
      */
-    public static List<List<Integer>> generatePath(Device head,Set<Edge> state) {
+    public static List<List<Integer>> generatePath(Device head, Set<Edge> state) {
         List<List<Integer>> path = new ArrayList<>();
 //        HashSet<Edge> state = new HashSet<>();
 
@@ -39,6 +39,7 @@ public class PathGenerator {
                     List<Integer> temp = new ArrayList<>();
                     temp.add(head.getId());
                     temp.add(d2.getId());
+                    temp.add(head.getId());
                     Edge test = new Edge(head, d2);
                     if (!state.contains(test)) {
                         path.add(temp);
@@ -60,8 +61,6 @@ public class PathGenerator {
                                 if (!state.contains(test2)) {
                                     temp.add(d3.getId());
                                     temp.add(head.getId());
-                                    // 权宜之计，起点和终点相同时仿真收不到包。正常应该用上面的。可没找到仿真哪里有问题。簇间也是这样处理。
-                                    temp.add(d3.getId());
                                     path.add(temp);
                                     state.add(test1);
                                     state.add(test2);
@@ -72,6 +71,7 @@ public class PathGenerator {
                         } else {
                             temp.add(head.getId());
                             temp.add(d2.getId());
+                            temp.add(head.getId());
                             Edge test1 = new Edge(d2, head);
                             if (!state.contains(test1)) {
                                 path.add(temp);
@@ -111,17 +111,22 @@ public class PathGenerator {
                 Edge edge = new Edge(boundaryDevice, boundaryAdjDevice);
 
                 // 头头相连
+                // 多加一跳，拉齐整体路径长度
                 if (isBoundaryDeviceHead && isBoundaryAdjDeviceHead) {
                     if (!state.contains(edge)) {
                         // 本簇规模小
                         if (adjClusterSize > clusterSize) {
-                            clusterPath.add(List.of(boundaryDevice.getId(), boundaryAdjDevice.getId()));
+                            clusterPath.add(List.of(boundaryDevice.getId(),
+                                    boundaryAdjDevice.getId(),
+                                    boundaryDevice.getId()));
                             state.add(edge);
                         }
                         // 规模相等时, Id 大的发包
                         if (adjClusterSize == clusterSize) {
                             if (cluster.getId() > adjCluster.getId()) {
-                                clusterPath.add(List.of(boundaryDevice.getId(), boundaryAdjDevice.getId()));
+                                clusterPath.add(List.of(boundaryDevice.getId(),
+                                        boundaryAdjDevice.getId(),
+                                        boundaryDevice.getId()));
                                 state.add(edge);
                             }
                         }
@@ -138,8 +143,14 @@ public class PathGenerator {
                         // 无簇间三角形
                         if (memberInAdjList.isEmpty()) {
                             if (!state.contains(edge)) {
-                                clusterPath.add(List.of(cluster.getHead().getId(), boundaryAdjDevice.getId()));
+                                Device adjClusterHead = boundaryAdjDevice.getBelongingCluster().getHead();
+                                clusterPath.add(List.of(cluster.getHead().getId(),
+                                        boundaryAdjDevice.getId(),
+                                        adjClusterHead.getId()));
                                 state.add(edge);
+                                // 反正也得回到簇头，这条边测重了也无所谓。
+                                Edge edge2 = new Edge(boundaryAdjDevice,adjClusterHead);
+                                state.add(edge2);
                             }
                         } else {
                             // 有簇间三角形
@@ -147,33 +158,30 @@ public class PathGenerator {
                                 Edge secondEdge = new Edge(boundaryAdjDevice, secondMember);
                                 // 一级边和二级扩展边都没加过
                                 if (!state.contains(edge) && !state.contains(secondEdge)) {
-//                                    clusterPath.add(List.of(cluster.getHead().getId(), boundaryAdjDevice.getId(), secondMember.getId(), cluster.getHead().getId()));
-                                    //  权宜之计，起点和终点相同时仿真收不到包。正常应该用上面的。可没找到仿真哪里有问题。
                                     clusterPath.add(List.of(
                                             cluster.getHead().getId(),
                                             boundaryAdjDevice.getId(),
                                             secondMember.getId(),
-                                            cluster.getHead().getId(),
-                                            secondMember.getId()
+                                            cluster.getHead().getId()
                                     ));
                                     state.add(edge);
                                     state.add(secondEdge);
 
-                                    Edge e = new Edge(secondMember,cluster.getHead());
+                                    Edge e = new Edge(secondMember, cluster.getHead());
                                     state.add(e);
 
                                 }
                                 if (!state.contains(edge)) {
-                                    clusterPath.add(List.of(cluster.getHead().getId(), boundaryAdjDevice.getId()));
+                                    Device adjClusterHead = boundaryAdjDevice.getBelongingCluster().getHead();
+                                    clusterPath.add(List.of(cluster.getHead().getId(),
+                                            boundaryAdjDevice.getId(),
+                                            adjClusterHead.getId()));
                                     state.add(edge);
+                                    Edge withinCluster2 = new Edge(boundaryAdjDevice, adjClusterHead);
+                                    state.add(withinCluster2);
                                 }
                             }
                         }
-                        // 优化之前
-//                        if (!state.contains(edge)) {
-//                            clusterPath.add(List.of(cluster.getHead().getId(), boundaryAdjDevice.getId()));
-//                            state.add(edge);
-//                        }
                     }
 
 
@@ -182,24 +190,36 @@ public class PathGenerator {
                         // 本簇规模小
                         if (adjClusterSize > clusterSize) {
                             if (!state.contains(edge)) {
-                                clusterPath.add(List.of(cluster.getHead().getId(), boundaryDevice.getId(), boundaryAdjDevice.getId()));
+                                Device adjClusterHead = boundaryAdjDevice.getBelongingCluster().getHead();
+                                clusterPath.add(List.of(cluster.getHead().getId(),
+                                        boundaryDevice.getId(),
+                                        boundaryAdjDevice.getId(),
+                                        adjClusterHead.getId()));
                                 state.add(edge);
 
                                 // 减少簇内发包
-                                Edge withinCluster = new Edge(cluster.getHead(),boundaryDevice);
+                                Edge withinCluster = new Edge(cluster.getHead(), boundaryDevice);
+                                Edge withinCluster2 = new Edge(boundaryAdjDevice, adjClusterHead);
                                 state.add(withinCluster);
+                                state.add(withinCluster2);
                             }
                         }
                         // 规模相等时, Id 大的发包
                         if (adjClusterSize == clusterSize) {
                             if (cluster.getId() > adjCluster.getId()) {
                                 if (!state.contains(edge)) {
-                                    clusterPath.add(List.of(cluster.getHead().getId(), boundaryDevice.getId(), boundaryAdjDevice.getId()));
+                                    Device adjClusterHead = boundaryAdjDevice.getBelongingCluster().getHead();
+                                    clusterPath.add(List.of(cluster.getHead().getId(),
+                                            boundaryDevice.getId(),
+                                            boundaryAdjDevice.getId(),
+                                            adjClusterHead.getId()));
                                     state.add(edge);
 
                                     // 减少簇内发包
-                                    Edge withinCluster = new Edge(cluster.getHead(),boundaryDevice);
+                                    Edge withinCluster = new Edge(cluster.getHead(), boundaryDevice);
+                                    Edge withinCluster2 = new Edge(boundaryAdjDevice, adjClusterHead);
                                     state.add(withinCluster);
+                                    state.add(withinCluster2);
                                 }
                             }
                         }

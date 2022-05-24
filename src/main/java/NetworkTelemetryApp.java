@@ -1,6 +1,6 @@
 import constant.ConfigConsts;
 import pojo.Cluster;
-import pojo.Device;
+
 import pojo.Edge;
 import pojo.Graph;
 import util.ClusterGenerator;
